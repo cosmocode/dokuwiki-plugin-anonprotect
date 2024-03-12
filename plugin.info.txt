@@ -1,0 +1,7 @@
+base   anonprotect
+author Anna Dabrowska
+email  dokuwiki@cosmocode.de
+date   2024-03-12
+name   anonprotect plugin
+desc   Ban anonymous users from accessing wiki content regardless of ACLs
+url    https://www.dokuwiki.org/plugin:anonprotect
