@@ -3,6 +3,7 @@
 use dokuwiki\Extension\ActionPlugin;
 use dokuwiki\Extension\EventHandler;
 use dokuwiki\Extension\Event;
+use dokuwiki\Utf8\PhpString;
 
 /**
  * DokuWiki Plugin anonprotect (Action Component)
@@ -15,7 +16,7 @@ class action_plugin_anonprotect extends ActionPlugin
     /** @inheritDoc */
     public function register(EventHandler $controller)
     {
-        $controller->register_hook('AUTH_ACL_CHECK', 'AFTER', $this, 'handleACL');
+        $controller->register_hook('AUTH_ACL_CHECK', 'BEFORE', $this, 'handleACL');
     }
 
     /**
@@ -31,11 +32,11 @@ class action_plugin_anonprotect extends ActionPlugin
         $ns = getNS($id);
 
         $norestrictions = $this->getConf('norestrictions');
-        $skip = array_map(
+        $skip = array_filter(
+            explode(',', $norestrictions),
             function ($skip) use ($ns) {
-                return strpos($ns, trim($skip)) !== false;
-            },
-            explode(',', $norestrictions)
+                return $ns && strpos($ns, trim($skip)) !== false;
+            }
         );
 
         if (!empty($skip)) {
@@ -45,6 +46,16 @@ class action_plugin_anonprotect extends ActionPlugin
         if (!$user) {
             $event->preventDefault();
             $event->result = AUTH_NONE;
+        }
+
+        // downgrade every rule for @ALL to no access
+        global $AUTH_ACL;
+
+        foreach ($AUTH_ACL as $line => $rule) {
+            if (PhpString::strpos($rule, '@ALL') !== false) {
+                $rule = preg_replace('/(@ALL\\t)(\d)/', '${1}' . AUTH_NONE, $rule);
+                $AUTH_ACL[$line] = $rule;
+            }
         }
     }
 }
