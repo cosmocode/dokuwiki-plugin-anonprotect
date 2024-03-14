@@ -13,6 +13,9 @@ use dokuwiki\Utf8\PhpString;
  */
 class action_plugin_anonprotect extends ActionPlugin
 {
+    /** @var bool True if ACLs have already been fixed */
+    public static $fixed = false;
+
     /** @inheritDoc */
     public function register(EventHandler $controller)
     {
@@ -48,7 +51,9 @@ class action_plugin_anonprotect extends ActionPlugin
             $event->result = AUTH_NONE;
         }
 
-        // downgrade every rule for @ALL to no access
+        // fix ACLs: downgrade every rule for @ALL to no access
+        if (self::$fixed) return;
+
         global $AUTH_ACL;
 
         foreach ($AUTH_ACL as $line => $rule) {
@@ -57,5 +62,7 @@ class action_plugin_anonprotect extends ActionPlugin
                 $AUTH_ACL[$line] = $rule;
             }
         }
+
+        self::$fixed = true;
     }
 }
