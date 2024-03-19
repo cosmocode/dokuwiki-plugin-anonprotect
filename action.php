@@ -35,14 +35,9 @@ class action_plugin_anonprotect extends ActionPlugin
         $ns = getNS($id);
 
         $norestrictions = $this->getConf('norestrictions');
-        $skip = array_filter(
-            explode(',', $norestrictions),
-            function ($skip) use ($ns) {
-                return $ns && strpos($ns, trim($skip)) !== false;
-            }
-        );
+        $skip = $this->skipNs($ns, $norestrictions);
 
-        if (!empty($skip)) {
+        if ($skip) {
             return;
         }
 
@@ -64,5 +59,31 @@ class action_plugin_anonprotect extends ActionPlugin
         }
 
         self::$fixed = true;
+    }
+
+    /**
+     * Skip namespace if it matches the norestriction setting
+     *
+     * @param string $ns
+     * @param string $norestrictions
+     * @return bool
+     */
+    public function skipNs($ns, $norestrictions)
+    {
+        return !empty(array_filter(
+            explode(',', $norestrictions),
+            function ($skip) use ($ns) {
+                // add colons to make sure we match against full namespace names
+                $ns = $ns ? ':' . $ns . ':' : '';
+                $skip = trim($skip) . ':';
+
+                $pos = strpos($ns, $skip);
+
+                // if skip is absolute, current namespace must match from the beginning
+                $skipIsAbsolute = $skip[0] === ':';
+                $found = $skipIsAbsolute ? $pos === 0 : $pos !== false;
+                return $ns && $found;
+            }
+        ));
     }
 }
